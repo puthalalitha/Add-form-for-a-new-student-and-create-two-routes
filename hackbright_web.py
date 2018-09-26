@@ -1,11 +1,30 @@
 """A web application for tracking projects, students, and student grades."""
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 
 import hackbright
 
 app = Flask(__name__)
 
+
+@app.route("/project-search")
+def search_project():
+    """Show form for search of project"""
+
+    return render_template("search-project.html")
+
+@app.route("/project")
+def project_info():
+    """Display info about project"""
+
+    title = request.args.get('title')
+
+    info = hackbright.get_project_by_title(title)
+
+    return render_template("project_info.html",
+                           title = info[0],
+                           description = info[1],
+                           max_grade = info[2])
 
 @app.route("/student")
 def get_student():
@@ -13,13 +32,18 @@ def get_student():
 
     github = request.args.get('github')
 
-    first, last, github = hackbright.get_student_by_github(github)
+    if github in [None,'']:
+        return redirect("/student-search")
 
-    html = render_template("student_info.html",
+    first, last, github = hackbright.get_student_by_github(github)
+    projects_list = hackbright.get_grades_by_github(github)
+
+    return render_template("student_info.html",
                            first=first,
                            last=last,
-                           github=github)
-    return html
+                           github=github,
+                           projects = projects_list)
+
 
 @app.route("/student-search")
 def get_student_form():
@@ -36,13 +60,14 @@ def new_student_form():
 def student_add():
      """Add a student."""
 
+
      first_name  = request.form.get("fname")
      last_name = request.form.get("lname")
      github = request.form.get("github")
 
-    hackbright.make_new_student(first_name, last_name, github)
+     hackbright.make_new_student(first_name, last_name, github)
 
-    return render_template("added_student.html")
+     return render_template("added_student.html", github = github)
 
 
 if __name__ == "__main__":
